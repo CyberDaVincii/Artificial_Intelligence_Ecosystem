@@ -54,7 +54,7 @@ Grad-CAM answers one question about a prediction: which parts of the image raise
 3. Compute the gradient of that class score with respect to every value in every feature map. A large positive gradient means "more of this pattern here would raise the score."
 4. Average each map's gradients over its 7 x 7 grid. That gives one importance weight per map: how much this pattern, wherever it appears, matters for this class.
 5. Multiply each map by its weight and add all 1,280 maps together. The result is a single 7 x 7 map.
-6. Keep only the positive values (ReLU), because the question is what supported the class, not what argued against it, and scale so the strongest cell is 1.
+6. Keep only the positive values (ReLU), because the question is what supported the class, not what argued against it, and scale so the strongest cell is 1. Because of that scaling, every map has a hottest cell, even for a class the model barely considered. The map says where the evidence was, not how much there was; the class score says how much.
 7. Stretch the 7 x 7 map to the size of the original image and color it, red for strong, blue for none, over the photo.
 
 Because it uses the class score, you can run it for any class, not just the top prediction. That is how the README compares the Eskimo dog, Siberian husky, and malamute maps for the same photo. Grad-CAM shows where the evidence came from. It does not show why the network learned to treat that region as evidence.
