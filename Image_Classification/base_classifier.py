@@ -6,7 +6,10 @@ regions of the image drove the top prediction.
 
 Usage: run the file, then type an image filename at the prompt. For each
 image it prints the top-3 ImageNet predictions and writes
-<name>_gradcam.png next to the input.
+<name>_gradcam.png next to the input. A second prompt takes an optional
+ImageNet class number: leave it blank for the top prediction, or type one
+(for example 250 for Siberian_husky) to map that class instead, saved as
+<name>_gradcam_class<number>.png.
 """
 import os
 
@@ -87,7 +90,12 @@ def save_gradcam_overlay(image_path, heatmap, output_path, alpha=0.5, gamma=0.6)
     image.array_to_img(overlay).save(output_path)
 
 
-def classify_image(image_path):
+def classify_image(image_path, class_index=None):
+    """Print the top-3 predictions and save a Grad-CAM overlay.
+
+    class_index=None maps the top prediction; an ImageNet class number maps
+    that class instead, so a lower-ranked guess can be compared with the top one.
+    """
     try:
         img_array = load_and_preprocess(image_path)
 
@@ -98,12 +106,14 @@ def classify_image(image_path):
         for i, (_, label, score) in enumerate(decoded_predictions):
             print(f"  {i + 1}: {label} ({score:.2f})")
 
-        # Grad-CAM for the top prediction.
-        heatmap, class_index = make_gradcam_heatmap(img_array)
+        # Grad-CAM for the top prediction, or for the class that was asked for.
+        chosen = class_index
+        heatmap, class_index = make_gradcam_heatmap(img_array, class_index=chosen)
+        label = decode_predictions(np.eye(1, 1000, class_index), top=1)[0][0][1]   # class number -> name
         base, _ = os.path.splitext(image_path)
-        output_path = f"{base}_gradcam.png"
+        output_path = f"{base}_gradcam.png" if chosen is None else f"{base}_gradcam_class{class_index}.png"
         save_gradcam_overlay(image_path, heatmap, output_path)
-        print(f"  Grad-CAM for '{decoded_predictions[0][1]}' saved as '{output_path}'")
+        print(f"  Grad-CAM for '{label}' (class {class_index}) saved as '{output_path}'")
     except Exception as e:
         print(f"Error processing '{image_path}': {e}")
 
@@ -115,4 +125,5 @@ if __name__ == "__main__":
         if image_path.lower() == "exit":
             print("Goodbye!")
             break
-        classify_image(image_path)
+        choice = input("Class number for Grad-CAM (blank = top prediction): ").strip()
+        classify_image(image_path, int(choice) if choice else None)
